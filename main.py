@@ -13,50 +13,6 @@ from math import radians
 from Camera import Camera
 from TerrainGen import HillGrid
 
-# vertices = (
-#     -0.5,   -0.5,   -0.5, 0.0, 0.0,
-#      0.5,   -0.5,   -0.5, 1.0, 0.0,
-#      0.5,    0.5,   -0.5, 1.0, 1.0,
-#      0.5,    0.5,   -0.5, 1.0, 1.0,
-#     -0.5,    0.5,   -0.5, 0.0, 1.0,
-#     -0.5,   -0.5,   -0.5, 0.0, 0.0,
-#
-#     -0.5,   -0.5,    0.5, 0.0, 0.0,
-#      0.5,   -0.5,    0.5, 1.0, 0.0,
-#      0.5,    0.5,    0.5, 1.0, 1.0,
-#      0.5,    0.5,    0.5, 1.0, 1.0,
-#     -0.5,    0.5,    0.5, 0.0, 1.0,
-#     -0.5,   -0.5,    0.5, 0.0, 0.0,
-#
-#     -0.5,    0.5,    0.5, 1.0, 0.0,
-#     -0.5,    0.5,   -0.5, 1.0, 1.0,
-#     -0.5,   -0.5,   -0.5, 0.0, 1.0,
-#     -0.5,   -0.5,   -0.5, 0.0, 1.0,
-#     -0.5,   -0.5,    0.5, 0.0, 0.0,
-#     -0.5,    0.5,    0.5, 1.0, 0.0,
-#
-#      0.5,    0.5,    0.5, 1.0, 0.0,
-#      0.5,    0.5,   -0.5, 1.0, 1.0,
-#      0.5,   -0.5,   -0.5, 0.0, 1.0,
-#      0.5,   -0.5,   -0.5, 0.0, 1.0,
-#      0.5,   -0.5,    0.5, 0.0, 0.0,
-#      0.5,    0.5,    0.5, 1.0, 0.0,
-#
-#     -0.5,   -0.5,   -0.5, 0.0, 1.0,
-#      0.5,   -0.5,   -0.5, 1.0, 1.0,
-#      0.5,   -0.5,    0.5, 1.0, 0.0,
-#      0.5,   -0.5,    0.5, 1.0, 0.0,
-#     -0.5,   -0.5,    0.5, 0.0, 0.0,
-#     -0.5,   -0.5,   -0.5, 0.0, 1.0,
-#
-#     -0.5,    0.5,   -0.5, 0.0, 1.0,
-#      0.5,    0.5,   -0.5, 1.0, 1.0,
-#      0.5,    0.5,    0.5, 1.0, 0.0,
-#      0.5,    0.5,    0.5, 1.0, 0.0,
-#     -0.5,    0.5,    0.5, 0.0, 0.0,
-#     -0.5,    0.5,   -0.5, 0.0, 1.0
-# )
-
 vertices = (
     -0.5,   -0.5,   -0.5,
      0.5,   -0.5,   -0.5,
@@ -101,14 +57,6 @@ vertices = (
     -0.5,    0.5,   -0.5,
 )
 
-# indicies = [0,  1,  2,  2,  3,  0,
-#             4,  5,  6,  6,  7,  4,
-#             8,  9, 10, 10, 11,  8,
-#             12, 13, 14, 14, 15, 12,
-#             16, 17, 18, 18, 19, 16,
-#             20, 21, 22, 22, 23, 20
-#             ]
-
 size = 40
 terrain = HillGrid(ITER=50, SIZE=size).__getitem__()
 flat_terrain = [x for sublist in terrain for x in sublist]
@@ -134,7 +82,6 @@ def main():
     running = True
 
     pygame.display.set_mode([window_width, window_height], DOUBLEBUF | OPENGL | FULLSCREEN)
-    pygame.display.set_caption("Minecraft Clone")
     window_width, window_height = pygame.display.get_surface().get_size()
     pygame.event.set_grab(True)
     pygame.mouse.set_visible(False)
@@ -172,17 +119,6 @@ def main():
     glEnableVertexAttribArray(1)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * vertices.itemsize, ctypes.c_void_p(0))
     glBindVertexArray(0)
-
-    # Instances
-    # instance_array = np.array(block_positions, np.float32)
-    #
-    # instance_vbo = glGenBuffers(1)
-    # glBindBuffer(GL_ARRAY_BUFFER, instance_vbo)
-    # glBufferData(GL_ARRAY_BUFFER, instance_array.itemsize * len(instance_array), instance_array, GL_STATIC_DRAW)
-    #
-    # glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
-    # glEnableVertexAttribArray(1)
-    # glVertexAttribDivisor(1, 1)
 
     # Texturing
     # wood = Image.open("resources/wood.jpg")
