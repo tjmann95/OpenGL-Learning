@@ -16,13 +16,28 @@ def process_input(window):
 
 def main():
 
-    vertices = [
-        -0.5, -0.5, 0.0,
-         0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0
+    vertices1 = [
+        -0.9, -0.5, 0.0,
+         0.0, -0.5, 0.0,
+        -0.45, 0.5, 0.0,
+        #-0.5,  0.5, 0.0
     ]
 
-    vertices = np.array(vertices, dtype=np.float32)
+    vertices2 = [
+         0.0, -0.5, 0.0,
+         0.9, -0.5, 0.0,
+         0.45, 0.5, 0.0,
+        #-0.5,  0.5, 0.0
+    ]
+
+    indices = [
+        0, 1, 2,
+        0, 2, 3
+    ]
+
+    vertices1 = np.array(vertices1, dtype=np.float32)
+    vertices2 = np.array(vertices2, dtype=np.float32)
+    indices = np.array(indices, dtype=np.uint32)
 
     glfw.init()
 
@@ -41,19 +56,30 @@ def main():
     glViewport(0, 0, window_width, window_height)
     glfw.set_framebuffer_size_callback(window, framebuffer_size_callback)
 
-    vao = glGenVertexArrays(1)
-    glBindVertexArray(vao)
+    shader = Shader("shaders\\vertex.vs", "shaders\\fragment.fs").compile_shader()
 
-    vbo = glGenBuffers(1)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+    vao = [GLuint()] * 2
+    vbo = [GLuint()] * 2
+    glGenVertexArrays(1, vao[0])
+    glGenBuffers(1, vbo[0])
+    glGenVertexArrays(1, vao[1])
+    glGenBuffers(1, vbo[1])
 
-    # Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * vertices.itemsize, ctypes.c_void_p(0))
+    glBindVertexArray(vao[0])
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0])
+    glBufferData(GL_ARRAY_BUFFER, vertices1.nbytes, vertices1, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0 * vertices1.itemsize, ctypes.c_void_p(0))
     glEnableVertexAttribArray(0)
 
-    shader = Shader("vertex.vs", "fragment.fs").compile_shader()
-    glUseProgram(shader)
+    glBindVertexArray(vao[1])
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1])
+    glBufferData(GL_ARRAY_BUFFER, vertices2.nbytes, vertices2, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0 * vertices2.itemsize, ctypes.c_void_p(0))
+    glEnableVertexAttribArray(0)
+
+    # ebo = glGenBuffers(1)
+    # glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    # glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
     while not glfw.window_should_close(window):
         process_input(window)
@@ -62,7 +88,11 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT)
 
         glUseProgram(shader)
-        glBindVertexArray(vao)
+        glBindVertexArray(vao[0])
+        # glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+        glDrawArrays(GL_TRIANGLES, 0, 3)
+
+        glBindVertexArray(vao[1])
         glDrawArrays(GL_TRIANGLES, 0, 3)
 
         glfw.swap_buffers(window)
