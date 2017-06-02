@@ -9,10 +9,12 @@ from math import radians
 from camera import Camera
 
 cam = Camera()
-cam_speed = .05
+cam_speed = .01
 last_x, last_y = 400, 400
 first_mouse = True
 keys = [False] * 1024
+
+light_pos = Vector3([1.2, 1.0, 2.0])
 
 def framebuffer_size_callback(window, width, height):
     glViewport(0, 0, width, height)
@@ -46,7 +48,7 @@ def move():
 
 def mouse_callback(window, xpos, ypos):
     global first_mouse, last_x, last_y
-    sensitivity = 1.3
+    sensitivity = 1.2
 
     if first_mouse:
         last_x = xpos
@@ -66,61 +68,53 @@ def mouse_callback(window, xpos, ypos):
 def main():
 
     vertices = [
-       # Vertices           Texture Coordinates
-        -0.5, -0.5, -0.5,   0.0, 0.0,
-         0.5, -0.5, -0.5,   1.0, 0.0,
-         0.5,  0.5, -0.5,   1.0, 1.0,
-         0.5,  0.5, -0.5,   1.0, 1.0,
-        -0.5,  0.5, -0.5,   0.0, 1.0,
-        -0.5, -0.5, -0.5,   0.0, 0.0,
+       # Vertices           Texture
+        -0.5, -0.5, -0.5,   0.0, 0.0,   0.0, 0.0, -1.0,
+         0.5, -0.5, -0.5,   1.0, 0.0,   0.0, 0.0, -1.0,
+         0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 0.0, -1.0,
+         0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 0.0, -1.0,
+        -0.5,  0.5, -0.5,   0.0, 1.0,   0.0, 0.0, -1.0,
+        -0.5, -0.5, -0.5,   0.0, 0.0,   0.0, 0.0, -1.0,
 
-        -0.5, -0.5,  0.5,   0.0, 0.0,
-         0.5, -0.5,  0.5,   1.0, 0.0,
-         0.5,  0.5,  0.5,   1.0, 1.0,
-         0.5,  0.5,  0.5,   1.0, 1.0,
-        -0.5,  0.5,  0.5,   0.0, 1.0,
-        -0.5, -0.5,  0.5,   0.0, 0.0,
+        -0.5, -0.5,  0.5,   0.0, 0.0,   0.0, 0.0,  1.0,
+         0.5, -0.5,  0.5,   1.0, 0.0,   0.0, 0.0,  1.0,
+         0.5,  0.5,  0.5,   1.0, 1.0,   0.0, 0.0,  1.0,
+         0.5,  0.5,  0.5,   1.0, 1.0,   0.0, 0.0,  1.0,
+        -0.5,  0.5,  0.5,   0.0, 1.0,   0.0, 0.0,  1.0,
+        -0.5, -0.5,  0.5,   0.0, 0.0,   0.0, 0.0,  1.0,
 
-        -0.5,  0.5,  0.5,   1.0, 0.0,
-        -0.5,  0.5, -0.5,   1.0, 1.0,
-        -0.5, -0.5, -0.5,   0.0, 1.0,
-        -0.5, -0.5, -0.5,   0.0, 1.0,
-        -0.5, -0.5,  0.5,   0.0, 0.0,
-        -0.5,  0.5,  0.5,   1.0, 0.0,
+        -0.5,  0.5,  0.5,   1.0, 0.0,  -1.0, 0.0,  0.0,
+        -0.5,  0.5, -0.5,   1.0, 1.0,  -1.0, 0.0,  0.0,
+        -0.5, -0.5, -0.5,   0.0, 1.0,  -1.0, 0.0,  0.0,
+        -0.5, -0.5, -0.5,   0.0, 1.0,  -1.0, 0.0,  0.0,
+        -0.5, -0.5,  0.5,   0.0, 0.0,  -1.0, 0.0,  0.0,
+        -0.5,  0.5,  0.5,   1.0, 0.0,  -1.0, 0.0,  0.0,
 
-         0.5,  0.5,  0.5,   1.0, 0.0,
-         0.5,  0.5, -0.5,   1.0, 1.0,
-         0.5, -0.5, -0.5,   0.0, 1.0,
-         0.5, -0.5, -0.5,   0.0, 1.0,
-         0.5, -0.5,  0.5,   0.0, 0.0,
-         0.5,  0.5,  0.5,   1.0, 0.0,
+         0.5,  0.5,  0.5,   1.0, 0.0,   1.0, 0.0,  0.0,
+         0.5,  0.5, -0.5,   1.0, 1.0,   1.0, 0.0,  0.0,
+         0.5, -0.5, -0.5,   0.0, 1.0,   1.0, 0.0,  0.0,
+         0.5, -0.5, -0.5,   0.0, 1.0,   1.0, 0.0,  0.0,
+         0.5, -0.5,  0.5,   0.0, 0.0,   1.0, 0.0,  0.0,
+         0.5,  0.5,  0.5,   1.0, 0.0,   1.0, 0.0,  0.0,
 
-        -0.5, -0.5, -0.5,   0.0, 1.0,
-         0.5, -0.5, -0.5,   1.0, 1.0,
-         0.5, -0.5,  0.5,   1.0, 0.0,
-         0.5, -0.5,  0.5,   1.0, 0.0,
-        -0.5, -0.5,  0.5,   0.0, 0.0,
-        -0.5, -0.5, -0.5,   0.0, 1.0,
+        -0.5, -0.5, -0.5,   0.0, 1.0,   0.0,-1.0,  0.0,
+         0.5, -0.5, -0.5,   1.0, 1.0,   0.0,-1.0,  0.0,
+         0.5, -0.5,  0.5,   1.0, 0.0,   0.0,-1.0,  0.0,
+         0.5, -0.5,  0.5,   1.0, 0.0,   0.0,-1.0,  0.0,
+        -0.5, -0.5,  0.5,   0.0, 0.0,   0.0,-1.0,  0.0,
+        -0.5, -0.5, -0.5,   0.0, 1.0,   0.0,-1.0,  0.0,
 
-        -0.5,  0.5, -0.5,   0.0, 1.0,
-         0.5,  0.5, -0.5,   1.0, 1.0,
-         0.5,  0.5,  0.5,   1.0, 0.0,
-         0.5,  0.5,  0.5,   1.0, 0.0,
-        -0.5,  0.5,  0.5,   0.0, 0.0,
-        -0.5,  0.5, -0.5,   0.0, 1.0
+        -0.5,  0.5, -0.5,   0.0, 1.0,   0.0, 1.0,  0.0,
+         0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 1.0,  0.0,
+         0.5,  0.5,  0.5,   1.0, 0.0,   0.0, 1.0,  0.0,
+         0.5,  0.5,  0.5,   1.0, 0.0,   0.0, 1.0,  0.0,
+        -0.5,  0.5,  0.5,   0.0, 0.0,   0.0, 1.0,  0.0,
+        -0.5,  0.5, -0.5,   0.0, 1.0,   0.0, 1.0,  0.0
     ]
 
     indices = [
         0, 1, 2,
         0, 2, 3
-    ]
-
-    block_positions = [
-        Vector3([ 0.0,  0.0,   0.0]),
-        Vector3([ 2.0,  5.0, -15.0]),
-        Vector3([-1.5, -2.2,  -2.5]),
-        Vector3([-3.8, -2.0, -12.3]),
-        Vector3([ 2.4, -0.4,  -3.5])
     ]
 
     vertices = np.array(vertices, dtype=np.float32)
@@ -150,6 +144,7 @@ def main():
     glEnable(GL_DEPTH_TEST)
 
     shader = Shader("shaders\\vertex.vs", "shaders\\fragment.fs")
+    lighting_shader = Shader("shaders\\lighting_vertex.vs", "shaders\\lighting_fragment.fs")
 
     vao = []
     vbo = []
@@ -157,7 +152,7 @@ def main():
     vao.append(GLuint())
     vbo.append(GLuint())
 
-    # Quad 1
+    # Cube 1
     glGenVertexArrays(1, vao[0])
     glGenBuffers(1, vbo[0])
 
@@ -166,19 +161,33 @@ def main():
     glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
 
     # Position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * vertices.itemsize, ctypes.c_void_p(0 * vertices.itemsize))
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * vertices.itemsize, ctypes.c_void_p(0 * vertices.itemsize))
     glEnableVertexAttribArray(0)
 
     # Texture
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * vertices.itemsize, ctypes.c_void_p(3 * vertices.itemsize))
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * vertices.itemsize, ctypes.c_void_p(3 * vertices.itemsize))
     glEnableVertexAttribArray(1)
+
+    # Normal
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * vertices.itemsize, ctypes.c_void_p(5 * vertices.itemsize))
+    glEnableVertexAttribArray(2)
 
     ebo = glGenBuffers(1)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
+    # Cube 2
+    vao.append(GLuint())
+    glGenVertexArrays(1, vao[1])
+    glBindVertexArray(vao[1])
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0])
+
+    # Cube 2 attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * vertices.itemsize, ctypes.c_void_p(0 * vertices.itemsize))
+    glEnableVertexAttribArray(0)
+
     # Loading texture
-    texture_image = Image.open("resources\\wood.png")
+    texture_image = Image.open("resources\\cobblestone.png")
     texture_image = texture_image.transpose(Image.FLIP_TOP_BOTTOM)
     texture_data = texture_image.convert("RGBA").tobytes()
 
@@ -193,15 +202,6 @@ def main():
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_image.width, texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data)
     glGenerateMipmap(GL_TEXTURE_2D)
-
-    # Create projection matrix
-    projection_matrix = Matrix44.perspective_projection(45.0, aspect_ratio, 0.1, 100.0)
-    projection_matrix = np.array(projection_matrix, dtype=np.float32)
-
-    # Get transformation locations
-    model_loc = glGetUniformLocation(shader.shader_program, "model")
-    view_loc = glGetUniformLocation(shader.shader_program, "view")
-    projection_loc = glGetUniformLocation(shader.shader_program, "projection")
 
     last_frame = 0.0
 
@@ -218,39 +218,85 @@ def main():
 
         glUseProgram(shader.shader_program)
 
+        # Send light position to shader
+        glUniform3f(glGetUniformLocation(shader.shader_program, "lightPos"), light_pos.x, light_pos.y, light_pos.z)
+
+        # Send view position to shader
+        glUniform3f(glGetUniformLocation(shader.shader_program, "viewPos"), cam.camera_pos[0], cam.camera_pos[1], cam.camera_pos[2])
+
+        # Get transformation locations
+        model_loc = glGetUniformLocation(shader.shader_program, "model")
+        view_loc = glGetUniformLocation(shader.shader_program, "view")
+        projection_loc = glGetUniformLocation(shader.shader_program, "projection")
+
+        # Get uniform locations
+        object_color_loc = glGetUniformLocation(shader.shader_program, "objectColor")
+        light_color_loc = glGetUniformLocation(shader.shader_program, "lightColor")
+
+        glUniform3f(object_color_loc, 1.0, 0.5, 0.31)
+        glUniform3f(light_color_loc, 1.0, 1.0, 1.0)
+
         view_matrix = cam.get_view_matrix()
         view_matrix = np.array(view_matrix, dtype=np.float32)
+
+        # Create projection matrix
+        projection_matrix = Matrix44.perspective_projection(45.0, aspect_ratio, 0.1, 100.0)
+        projection_matrix = np.array(projection_matrix, dtype=np.float32)
 
         # Send view projection transformations to shader
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_matrix)
         glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection_matrix)
 
-        # Draw
+        # Create model matrix
+        model_matrix = Matrix44.identity()  # Scale model by 1
+
+        model_rotation_x = Quaternion.from_x_rotation(0)  # Rotate about x
+        model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
+        model_rotation_y = Quaternion.from_y_rotation(0)  # Rotate about y
+        model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
+        model_rotation_z = Quaternion.from_z_rotation(0)  # Rotate about z
+        model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
+
+        model_translation = Vector3([0.0, 0.0, 0.0])
+        model_translation = Matrix44.from_translation(model_translation)
+
+        model_matrix = model_matrix * model_orientation_x  # Apply orientation x
+        model_matrix = model_matrix * model_orientation_y  # Apply orientation y
+        model_matrix = model_matrix * model_orientation_z  # Apply orientation z
+        model_matrix = model_matrix * model_translation  # Apply translation
+        model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+
+        # Send model transform to shader
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, model_matrix)
+
+        # Draw cube 1
         glBindVertexArray(vao[0])
-        for each_block in range(0, len(block_positions)):
-            # Create model matrix
-            model_matrix = Matrix44.identity()  # Scale model by 1
 
-            model_rotation_x = Quaternion.from_x_rotation(-radians(100 * each_block))  # Rotate about x
-            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-            model_rotation_y = Quaternion.from_y_rotation(-radians(30 * each_block))  # Rotate about y
-            model_orientation_y = model_rotation_y * Quaternion()
-            model_rotation_z = Quaternion.from_z_rotation(-radians(50 * each_block))  # Rotate about z
-            model_orientation_z = model_rotation_z * Quaternion()
+        glDrawArrays(GL_TRIANGLES, 0, 36)
 
-            model_translation = block_positions[each_block]
-            model_translation = Matrix44.from_translation(model_translation)
+        # -------------------------------------------------------------------------------------
+        # Draw light
+        glUseProgram(lighting_shader.shader_program)
 
-            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
-            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
-            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
-            model_matrix = model_matrix * model_translation  # Apply translation
-            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+        # Get transformation locations
+        model_loc = glGetUniformLocation(lighting_shader.shader_program, "model")
+        view_loc = glGetUniformLocation(lighting_shader.shader_program, "view")
+        projection_loc = glGetUniformLocation(lighting_shader.shader_program, "projection")
 
-            # Send model transform to shader
-            glUniformMatrix4fv(model_loc, 1, GL_FALSE, model_matrix)
+        # Send view projection transformations to shader
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_matrix)
+        glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection_matrix)
 
-            glDrawArrays(GL_TRIANGLES, 0, 36)
+        light_model = Matrix44.from_translation(light_pos)
+        light_matrix = Matrix44.from_scale(Vector3([.2, .2, .2])) * light_model
+        light_matrix = np.array(light_matrix, dtype=np.float32)
+
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, light_matrix)
+
+        glBindVertexArray(vao[1])
+        glDrawArrays(GL_TRIANGLES, 0, 36)
+
+        glUseProgram(lighting_shader.shader_program)
 
         glfw.swap_buffers(window)
         glfw.poll_events()
