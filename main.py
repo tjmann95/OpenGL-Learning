@@ -7,6 +7,7 @@ from PIL import Image
 from pyrr import Quaternion, Matrix44, Vector3, vector, vector3
 from math import radians
 from camera import Camera
+from math import sin, cos
 
 cam = Camera()
 cam_speed = .01
@@ -68,7 +69,7 @@ def mouse_callback(window, xpos, ypos):
 def main():
 
     vertices = [
-       # Vertices           Texture
+       # Vertices           Texture     Normals
         -0.5, -0.5, -0.5,   0.0, 0.0,   0.0, 0.0, -1.0,
          0.5, -0.5, -0.5,   1.0, 0.0,   0.0, 0.0, -1.0,
          0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 0.0, -1.0,
@@ -115,6 +116,18 @@ def main():
     indices = [
         0, 1, 2,
         0, 2, 3
+    ]
+
+    block_positions = [
+        Vector3([0, 0, 0]),
+        Vector3([1, 0, 0]),
+        Vector3([-1, 0, 0]),
+        Vector3([0, 0, 1]),
+        Vector3([1, 0, 1]),
+        Vector3([-1, 0, 1]),
+        Vector3([0, 0, -1]),
+        Vector3([1, 0, -1]),
+        Vector3([-1, 0, -1]),
     ]
 
     vertices = np.array(vertices, dtype=np.float32)
@@ -187,9 +200,17 @@ def main():
     glEnableVertexAttribArray(0)
 
     # Loading texture
-    texture_image = Image.open("resources\\cobblestone.png")
+    texture_image = Image.open("resources\\container.png")
     texture_image = texture_image.transpose(Image.FLIP_TOP_BOTTOM)
     texture_data = texture_image.convert("RGBA").tobytes()
+
+    spec_texture_image = Image.open("resources\\container_specular.png")
+    spec_texture_image = spec_texture_image.transpose(Image.FLIP_TOP_BOTTOM)
+    spec_texture_data = spec_texture_image.convert("RGBA").tobytes()
+
+    emission_texture_image = Image.open("resources\\matrix.png")
+    emission_texture_image = emission_texture_image.transpose(Image.FLIP_TOP_BOTTOM)
+    emission_texture_data = emission_texture_image.convert("RGBA").tobytes()
 
     # Generating texture
     texture = glGenTextures(1)
@@ -201,6 +222,28 @@ def main():
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_image.width, texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data)
+    glGenerateMipmap(GL_TEXTURE_2D)
+
+    spec_texture = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, spec_texture)
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spec_texture_image.width, spec_texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, spec_texture_data)
+    glGenerateMipmap(GL_TEXTURE_2D)
+
+    emission_texture = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, emission_texture)
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, emission_texture_image.width, emission_texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, emission_texture_data)
     glGenerateMipmap(GL_TEXTURE_2D)
 
     last_frame = 0.0
@@ -218,11 +261,31 @@ def main():
 
         glUseProgram(shader.shader_program)
 
-        # Send light position to shader
+        # Texture
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, texture)
+
+        glActiveTexture(GL_TEXTURE1)
+        glBindTexture(GL_TEXTURE_2D, spec_texture)
+
+        glActiveTexture(GL_TEXTURE2)
+        glBindTexture(GL_TEXTURE_2D, emission_texture)
+
+        # Send material to shader
+        glUniform1f(glGetUniformLocation(shader.shader_program, "material.shininess"), 32.0)
+
+        # Send light to shader
         glUniform3f(glGetUniformLocation(shader.shader_program, "lightPos"), light_pos.x, light_pos.y, light_pos.z)
+        glUniform3f(glGetUniformLocation(shader.shader_program, "light.ambient"), .2, .2, .2)
+        glUniform3f(glGetUniformLocation(shader.shader_program, "light.diffuse"), .5, .5, .5)
+        glUniform3f(glGetUniformLocation(shader.shader_program, "light.specular"), 1.0, 1.0, 1.0)
 
         # Send view position to shader
         glUniform3f(glGetUniformLocation(shader.shader_program, "viewPos"), cam.camera_pos[0], cam.camera_pos[1], cam.camera_pos[2])
+
+        # Send light map to shader
+        glUniform1i(glGetUniformLocation(shader.shader_program, "diffuse"), 0)
+        glUniform1i(glGetUniformLocation(shader.shader_program, "specular"), 1)
 
         # Get transformation locations
         model_loc = glGetUniformLocation(shader.shader_program, "model")
@@ -247,56 +310,57 @@ def main():
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_matrix)
         glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection_matrix)
 
-        # Create model matrix
-        model_matrix = Matrix44.identity()  # Scale model by 1
+        for each_block in range(0, len(block_positions)):
+            # Create model matrix
+            model_matrix = Matrix44.identity()  # Scale model by 1
 
-        model_rotation_x = Quaternion.from_x_rotation(0)  # Rotate about x
-        model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-        model_rotation_y = Quaternion.from_y_rotation(0)  # Rotate about y
-        model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
-        model_rotation_z = Quaternion.from_z_rotation(0)  # Rotate about z
-        model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
+            model_rotation_x = Quaternion.from_x_rotation(0)  # Rotate about x
+            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
+            model_rotation_y = Quaternion.from_y_rotation(0)  # Rotate about y
+            model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
+            model_rotation_z = Quaternion.from_z_rotation(0)  # Rotate about z
+            model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
 
-        model_translation = Vector3([0.0, 0.0, 0.0])
-        model_translation = Matrix44.from_translation(model_translation)
+            model_translation = block_positions[each_block]
+            model_translation = Matrix44.from_translation(model_translation)
 
-        model_matrix = model_matrix * model_orientation_x  # Apply orientation x
-        model_matrix = model_matrix * model_orientation_y  # Apply orientation y
-        model_matrix = model_matrix * model_orientation_z  # Apply orientation z
-        model_matrix = model_matrix * model_translation  # Apply translation
-        model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
+            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
+            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
+            model_matrix = model_matrix * model_translation  # Apply translation
+            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
 
-        # Send model transform to shader
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, model_matrix)
+            # Send model transform to shader
+            glUniformMatrix4fv(model_loc, 1, GL_FALSE, model_matrix)
 
-        # Draw cube 1
-        glBindVertexArray(vao[0])
+            # Draw cube 1
+            glBindVertexArray(vao[0])
 
-        glDrawArrays(GL_TRIANGLES, 0, 36)
+            glDrawArrays(GL_TRIANGLES, 0, 36)
 
         # -------------------------------------------------------------------------------------
         # Draw light
-        glUseProgram(lighting_shader.shader_program)
+        # glUseProgram(lighting_shader.shader_program)
+        #
+        # # Get transformation locations
+        # model_loc = glGetUniformLocation(lighting_shader.shader_program, "model")
+        # view_loc = glGetUniformLocation(lighting_shader.shader_program, "view")
+        # projection_loc = glGetUniformLocation(lighting_shader.shader_program, "projection")
+        #
+        # # Send view projection transformations to shader
+        # glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_matrix)
+        # glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection_matrix)
+        #
+        # light_model = Matrix44.from_translation(light_pos)
+        # light_matrix = Matrix44.from_scale(Vector3([.2, .2, .2])) * light_model
+        # light_matrix = np.array(light_matrix, dtype=np.float32)
+        #
+        # glUniformMatrix4fv(model_loc, 1, GL_FALSE, light_matrix)
+        #
+        # glBindVertexArray(vao[1])
+        # glDrawArrays(GL_TRIANGLES, 0, 36)
 
-        # Get transformation locations
-        model_loc = glGetUniformLocation(lighting_shader.shader_program, "model")
-        view_loc = glGetUniformLocation(lighting_shader.shader_program, "view")
-        projection_loc = glGetUniformLocation(lighting_shader.shader_program, "projection")
-
-        # Send view projection transformations to shader
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_matrix)
-        glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection_matrix)
-
-        light_model = Matrix44.from_translation(light_pos)
-        light_matrix = Matrix44.from_scale(Vector3([.2, .2, .2])) * light_model
-        light_matrix = np.array(light_matrix, dtype=np.float32)
-
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, light_matrix)
-
-        glBindVertexArray(vao[1])
-        glDrawArrays(GL_TRIANGLES, 0, 36)
-
-        glUseProgram(lighting_shader.shader_program)
+        # glUseProgram(lighting_shader.shader_program)
 
         glfw.swap_buffers(window)
         glfw.poll_events()
