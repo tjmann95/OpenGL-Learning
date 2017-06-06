@@ -1,4 +1,6 @@
 from OpenGL.GL import *
+import pyrr
+import numpy
 
 class Shader(object):
 
@@ -26,7 +28,7 @@ class Shader(object):
 
         # Check vertex compilation success
         error_message = glGetShaderInfoLog(vertex_shader)
-        if not "No errors." in str(error_message):
+        if "No errors." not in str(error_message) and len(str(error_message)) > 0:
             print("ERROR: Vertex shader failed to compile:\n" + str(error_message))
 
         # Compile fragment shader
@@ -36,7 +38,7 @@ class Shader(object):
 
         # Check fragment compilation success
         error_message = glGetShaderInfoLog(fragment_shader)
-        if not "No errors." in str(error_message):
+        if "No errors." not in str(error_message) and len(str(error_message)) > 0:
             print("ERROR: Fragment shader failed to compile:\n" + str(error_message))
 
         # Creating shader program
@@ -47,10 +49,34 @@ class Shader(object):
 
         # Check shader program success
         error_message = glGetProgramInfoLog(shader_program)
-        if not "No errors." in str(error_message):
+        if "No errors." not in str(error_message) and len(str(error_message)) > 0:
             print("ERROR: Shader program failed:\n" + str(error_message))
 
         glDeleteShader(vertex_shader)
         glDeleteShader(fragment_shader)
 
         return shader_program
+
+    def set_vec3(self, uniform, values):
+        if type(values) != pyrr.objects.vector3.Vector3:
+            raise Exception("Must input a Vector3")
+        location = glGetUniformLocation(self.shader_program, uniform)
+        glUniform3f(location, values.x, values.y, values.z)
+
+    def set_float(self, uniform, value):
+        if type(value) != float:
+            raise Exception("Must input a float")
+        location = glGetUniformLocation(self.shader_program, uniform)
+        glUniform1f(location, value)
+
+    def set_Matrix44f(self, uniform, matrix):
+        if matrix.dtype != "float32" or type(matrix) != numpy.ndarray or matrix.shape != (4, 4):
+            raise Exception("Must input a 4x4 float32 array")
+        location = glGetUniformLocation(self.shader_program, uniform)
+        glUniformMatrix4fv(location, 1, GL_FALSE, matrix)
+
+    def set_int(self, uniform, value):
+        if type(value) != int:
+            raise Exception("Must input a float")
+        location = glGetUniformLocation(self.shader_program, uniform)
+        glUniform1i(location, value)
