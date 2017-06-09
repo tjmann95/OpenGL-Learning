@@ -125,16 +125,30 @@ def main():
     # ]
     #
     block_positions = [
-        Vector3([0, 0, 0]),
-        Vector3([2, 5, -15]),
-        Vector3([-1.5, -2.2, -2.5]),
-        Vector3([-3.8, -2, -12.3]),
-        Vector3([2.4, -.4, -3.5]),
-        Vector3([-1.7, 3.0, -7.5]),
-        Vector3([1.3, -2., -2.5]),
-        Vector3([1.5, 2.0, -2.5]),
-        Vector3([1.5, .2, -1.5]),
-        Vector3([-1.3, 1., -1.5])
+        Vector3([0, -2, 0]),
+        Vector3([1, -2, 0]),
+        Vector3([-1, -2, 0]),
+        Vector3([2, -2, 0]),
+        Vector3([-2, -2, 0]),
+        Vector3([0, -2, -1]),
+        Vector3([1, -2, -1]),
+        Vector3([-1, -2, -1]),
+        Vector3([2, -2, -1]),
+        Vector3([-2, -2, -1]),
+        Vector3([1, -2, -2]),
+        Vector3([2, -2, -2]),
+        Vector3([0, -2, -2]),
+        Vector3([-1, -2, -2]),
+        Vector3([-2, -2, -2]),
+        Vector3([1, -2, -3]),
+        Vector3([2, -2, -3]),
+        Vector3([0, -2, -3]),
+        Vector3([-1, -2, -3]),
+        Vector3([-2, -2, -3]),
+
+        Vector3([-1, -1, -1]),
+        Vector3([0, -1, -3])
+        #Vector3([])
     ]
 
     # vertices = np.array(vertices, dtype=np.float32)
@@ -161,10 +175,13 @@ def main():
     glfw.set_key_callback(window, key_callback)
     glfw.set_cursor_pos_callback(window, mouse_callback)
 
+    glEnable(GL_STENCIL_TEST)
     glEnable(GL_DEPTH_TEST)
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
     shader = Shader("shaders\\vertex.vs", "shaders\\fragment.fs")
     lighting_shader = Shader("shaders\\lighting_vertex.vs", "shaders\\lighting_fragment.fs")
+    outline_shader = Shader("shaders\\outline_vertex.vs", "shaders\\outline_fragment.fs")
 
     obj = ObjLoader()
     obj.load_mesh()
@@ -209,7 +226,7 @@ def main():
 
         # glClearColor(.35, .59, 1., 1.)
         glClearColor(.2, .2, .2, 1.)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
         time = glfw.get_time()
         delta_time = time - last_frame
@@ -238,24 +255,25 @@ def main():
         shader.set_float("pointLights[0].quadratic", .032)
 
         shader.set_vec3("pointLights[1].position", point_light_positions[1])
-        shader.set_vec3("pointLights[0].ambient", Vector3([.05, .05, .05]))
-        shader.set_vec3("pointLights[0].diffuse", Vector3([.8, .8, .8]))
-        shader.set_vec3("pointLights[0].specular", Vector3([1.0, 1.0, 1.0]))
+        shader.set_vec3("pointLights[1].ambient", Vector3([.05, .05, .05]))
+        shader.set_vec3("pointLights[1].diffuse", Vector3([.8, .8, .8]))
+        shader.set_vec3("pointLights[1].specular", Vector3([1.0, 1.0, 1.0]))
+        shader.set_float("pointLights[1].constant", 1.0)
         shader.set_float("pointLights[1].linear", .09)
         shader.set_float("pointLights[1].quadratic", .032)
 
         shader.set_vec3("pointLights[2].position", point_light_positions[2])
-        shader.set_vec3("pointLights[0].ambient", Vector3([.05, .05, .05]))
-        shader.set_vec3("pointLights[0].diffuse", Vector3([.8, .8, .8]))
-        shader.set_vec3("pointLights[0].specular", Vector3([1.0, 1.0, 1.0]))
+        shader.set_vec3("pointLights[2].ambient", Vector3([.05, .05, .05]))
+        shader.set_vec3("pointLights[2].diffuse", Vector3([.8, .8, .8]))
+        shader.set_vec3("pointLights[2].specular", Vector3([1.0, 1.0, 1.0]))
         shader.set_float("pointLights[2].constant", 1.0)
         shader.set_float("pointLights[2].linear", .09)
         shader.set_float("pointLights[2].quadratic", .032)
 
         shader.set_vec3("pointLights[3].position", point_light_positions[3])
-        shader.set_vec3("pointLights[0].ambient", Vector3([.05, .05, .05]))
-        shader.set_vec3("pointLights[0].diffuse", Vector3([.8, .8, .8]))
-        shader.set_vec3("pointLights[0].specular", Vector3([1.0, 1.0, 1.0]))
+        shader.set_vec3("pointLights[3].ambient", Vector3([.05, .05, .05]))
+        shader.set_vec3("pointLights[3].diffuse", Vector3([.8, .8, .8]))
+        shader.set_vec3("pointLights[3].specular", Vector3([1.0, 1.0, 1.0]))
         shader.set_float("pointLights[3].constant", 1.0)
         shader.set_float("pointLights[3].linear", .09)
         shader.set_float("pointLights[3].quadratic", .032)
@@ -285,15 +303,18 @@ def main():
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, spec_texture)
 
-        for each_block in range(0, len(block_positions)):
-            # Create model matrix
-            model_matrix = 2 * Matrix44.identity()  # Scale model by 1
+        # Draw bottom
+        glStencilMask(0x00)
 
-            model_rotation_x = Quaternion.from_x_rotation(20 * each_block)  # Rotate about x
+        for each_block in range(0, len(block_positions) - 2):
+            # Create model matrix
+            model_matrix = Matrix44.from_scale(Vector3([1, 1, 1]))  # Scale model by 1
+
+            model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
             model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-            model_rotation_y = Quaternion.from_y_rotation(7 * each_block)  # Rotate about y
+            model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
             model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
-            model_rotation_z = Quaternion.from_z_rotation(10 * each_block)  # Rotate about z
+            model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
             model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
 
             model_translation = block_positions[each_block]
@@ -309,23 +330,68 @@ def main():
             shader.set_Matrix44f("model", model_matrix)
             obj.draw_mesh()
 
-        # -------------------------------------------------------------------------------------
-        # Draw light
-        # glUseProgram(lighting_shader.shader_program)
-        #
-        # # Send view projection transformations to shader
-        # lighting_shader.set_Matrix44f("view", view_matrix)
-        # lighting_shader.set_Matrix44f("projection", projection_matrix)
-        #
-        # glBindVertexArray(vao)
-        #
-        # for each_light in range(0, len(point_light_positions)):
-        #     light_model = Matrix44.from_translation(point_light_positions[each_light])
-        #     light_matrix = Matrix44.from_scale(Vector3([.2, .2, .2])) * light_model
-        #     light_matrix = np.array(light_matrix, dtype=np.float32)
-        #
-        #     lighting_shader.set_Matrix44f("model", light_matrix)
-        #     glDrawArrays(GL_TRIANGLES, 0, len(obj.vertex_index))
+        # Draw outline blocks
+        glStencilFunc(GL_ALWAYS, 1, 0xFF)
+        glStencilMask(0xFF)
+        for each_block in range(len(block_positions) - 2, len(block_positions)):
+            # Create model matrix
+            model_matrix = Matrix44.from_scale(Vector3([1, 1, 1]))  # Scale model by 1
+
+            model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
+            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
+            model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
+            model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
+            model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
+            model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
+
+            model_translation = block_positions[each_block]
+            model_translation = Matrix44.from_translation(2 * model_translation)
+
+            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
+            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
+            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
+            model_matrix = model_matrix * model_translation  # Apply translation
+            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+
+            # Send model transform to shader
+            shader.set_Matrix44f("model", model_matrix)
+            obj.draw_mesh()
+
+        # Draw outline
+        glUseProgram(outline_shader.shader_program)
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF)
+        glStencilMask(0x00)
+        glDisable(GL_DEPTH_TEST)
+
+        # Send view projection transformations to shader
+        outline_shader.set_Matrix44f("view", view_matrix)
+        outline_shader.set_Matrix44f("projection", projection_matrix)
+        for each_block in range(len(block_positions) - 2, len(block_positions)):
+            # Create model matrix
+            model_matrix = Matrix44.from_scale(Vector3([1.05, 1.05, 1.05]))  # Scale model by 1
+
+            model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
+            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
+            model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
+            model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
+            model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
+            model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
+
+            model_translation = block_positions[each_block]
+            model_translation = Matrix44.from_translation(2 * model_translation)
+
+            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
+            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
+            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
+            model_matrix = model_matrix * model_translation  # Apply translation
+            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+
+            # Send model transform to shader
+            outline_shader.set_Matrix44f("model", model_matrix)
+            obj.draw_mesh()
+
+        glStencilMask(0xFF)
+        glEnable(GL_DEPTH_TEST)
 
         glfw.swap_buffers(window)
         glfw.poll_events()
