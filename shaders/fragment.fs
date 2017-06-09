@@ -85,6 +85,8 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 
+uniform sampler2D tex;
+
 void main()
 {
     //properties
@@ -98,5 +100,9 @@ void main()
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
 
-    outColor = vec4(result, 1.0);
+    //outColor = vec4(result, 1.0);
+    vec4 texColor = texture(tex, texCoordOut);
+    if(texColor.a < 0.1)
+        discard;
+    outColor = texColor;
 }
