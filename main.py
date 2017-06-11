@@ -74,50 +74,26 @@ def mouse_callback(window, xpos, ypos):
 
 def main():
 
-    # vertices = [
-    #    # Vertices           Texture     Normals
-    #     -0.5, -0.5, -0.5,   0.0, 0.0,   0.0, 0.0, -1.0,
-    #      0.5, -0.5, -0.5,   1.0, 0.0,   0.0, 0.0, -1.0,
-    #      0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 0.0, -1.0,
-    #      0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 0.0, -1.0,
-    #     -0.5,  0.5, -0.5,   0.0, 1.0,   0.0, 0.0, -1.0,
-    #     -0.5, -0.5, -0.5,   0.0, 0.0,   0.0, 0.0, -1.0,
-    #
-    #     -0.5, -0.5,  0.5,   0.0, 0.0,   0.0, 0.0,  1.0,
-    #      0.5, -0.5,  0.5,   1.0, 0.0,   0.0, 0.0,  1.0,
-    #      0.5,  0.5,  0.5,   1.0, 1.0,   0.0, 0.0,  1.0,
-    #      0.5,  0.5,  0.5,   1.0, 1.0,   0.0, 0.0,  1.0,
-    #     -0.5,  0.5,  0.5,   0.0, 1.0,   0.0, 0.0,  1.0,
-    #     -0.5, -0.5,  0.5,   0.0, 0.0,   0.0, 0.0,  1.0,
-    #
-    #     -0.5,  0.5,  0.5,   1.0, 0.0,  -1.0, 0.0,  0.0,
-    #     -0.5,  0.5, -0.5,   1.0, 1.0,  -1.0, 0.0,  0.0,
-    #     -0.5, -0.5, -0.5,   0.0, 1.0,  -1.0, 0.0,  0.0,
-    #     -0.5, -0.5, -0.5,   0.0, 1.0,  -1.0, 0.0,  0.0,
-    #     -0.5, -0.5,  0.5,   0.0, 0.0,  -1.0, 0.0,  0.0,
-    #     -0.5,  0.5,  0.5,   1.0, 0.0,  -1.0, 0.0,  0.0,
-    #
-    #      0.5,  0.5,  0.5,   1.0, 0.0,   1.0, 0.0,  0.0,
-    #      0.5,  0.5, -0.5,   1.0, 1.0,   1.0, 0.0,  0.0,
-    #      0.5, -0.5, -0.5,   0.0, 1.0,   1.0, 0.0,  0.0,
-    #      0.5, -0.5, -0.5,   0.0, 1.0,   1.0, 0.0,  0.0,
-    #      0.5, -0.5,  0.5,   0.0, 0.0,   1.0, 0.0,  0.0,
-    #      0.5,  0.5,  0.5,   1.0, 0.0,   1.0, 0.0,  0.0,
-    #
-    #     -0.5, -0.5, -0.5,   0.0, 1.0,   0.0,-1.0,  0.0,
-    #      0.5, -0.5, -0.5,   1.0, 1.0,   0.0,-1.0,  0.0,
-    #      0.5, -0.5,  0.5,   1.0, 0.0,   0.0,-1.0,  0.0,
-    #      0.5, -0.5,  0.5,   1.0, 0.0,   0.0,-1.0,  0.0,
-    #     -0.5, -0.5,  0.5,   0.0, 0.0,   0.0,-1.0,  0.0,
-    #     -0.5, -0.5, -0.5,   0.0, 1.0,   0.0,-1.0,  0.0,
-    #
-    #     -0.5,  0.5, -0.5,   0.0, 1.0,   0.0, 1.0,  0.0,
-    #      0.5,  0.5, -0.5,   1.0, 1.0,   0.0, 1.0,  0.0,
-    #      0.5,  0.5,  0.5,   1.0, 0.0,   0.0, 1.0,  0.0,
-    #      0.5,  0.5,  0.5,   1.0, 0.0,   0.0, 1.0,  0.0,
-    #     -0.5,  0.5,  0.5,   0.0, 0.0,   0.0, 1.0,  0.0,
-    #     -0.5,  0.5, -0.5,   0.0, 1.0,   0.0, 1.0,  0.0
-    # ]
+    vertices = [
+       # Vertices           Texture
+        -0.5, -0.5,  5.0,   2.0, 0.0,
+        -5.0, -0.5,  5.0,   0.0, 0.0,
+        -5.0, -0.5, -5.0,   0.0, 2.0,
+
+         5.0, -0.5,  5.0,   2.0, 0.0,
+        -5.0, -0.5, -5.0,   0.0, 2.0,
+         5.0, -0.5, -5.0,   2.0, 2.0
+    ]
+
+    vertices_trans = [
+        0.0, 0.5, 0.0,  0.0, 0.0,
+        0.0,-0.5, 0.0,  0.0, 1.0,
+        1.0,-0.5, 0.0,  1.0, 1.0,
+
+        0.0, 0.5, 0.0,  0.0, 0.0,
+        1.0,-0.5, 0.0,  1.0, 1.0,
+        1.0, 0.5, 0.0,  1.0, 0.0
+    ]
     #
     # indices = [
     #     0, 1, 2,
@@ -151,7 +127,8 @@ def main():
         #Vector3([])
     ]
 
-    # vertices = np.array(vertices, dtype=np.float32)
+    vertices = np.array(vertices, dtype=np.float32)
+    vertices_trans = np.array(vertices_trans, dtype=np.float32)
     # indices = np.array(indices, dtype=np.uint32)
 
     glfw.init()
@@ -185,6 +162,29 @@ def main():
 
     obj = ObjLoader()
     obj.load_mesh()
+
+    # Plane VAO
+    plane_vao = glGenVertexArrays(1)
+    plane_vbo = glGenBuffers(1)
+    glBindVertexArray(plane_vao)
+    glBindBuffer(GL_ARRAY_BUFFER, plane_vbo)
+    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * vertices.itemsize, ctypes.c_void_p(0))
+    glEnableVertexAttribArray(1)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * vertices.itemsize, ctypes.c_void_p(3))
+
+    # Trans vao
+    trans_vao = glGenVertexArrays(1)
+    trans_vbo = glGenBuffers(1)
+    glBindVertexArray(trans_vao)
+    glBindBuffer(GL_ARRAY_BUFFER, trans_vbo)
+    glBufferData(GL_ARRAY_BUFFER, vertices_trans.nbytes, vertices_trans, GL_STATIC_DRAW)
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * vertices_trans.itemsize, ctypes.c_void_p(0))
+    glEnableVertexAttribArray(1)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * vertices_trans.itemsize, ctypes.c_void_p(3))
+    glBindVertexArray(0)
 
     # Loading texture
     texture_image = Image.open("resources\\container_texture.png")
@@ -280,6 +280,8 @@ def main():
 
         # Send material to shader
         shader.set_float("material.shininess", 32.0)
+
+        shader.set_int("tex", 0)
 
         # Send maps to shader
         shader.set_int("diffuse", 0)
