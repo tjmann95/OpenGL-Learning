@@ -7,6 +7,7 @@ from PIL import Image
 from pyrr import Quaternion, Matrix44, Vector3, vector, vector3
 from camera import Camera
 from Mesh import *
+from math import radians
 
 cam = Camera()
 cam_speed = .05
@@ -74,32 +75,16 @@ def mouse_callback(window, xpos, ypos):
 
 def main():
 
-    vertices = [
-       # Vertices           Texture
-        -0.5, -0.5,  5.0,   2.0, 0.0,
-        -5.0, -0.5,  5.0,   0.0, 0.0,
-        -5.0, -0.5, -5.0,   0.0, 2.0,
-
-         5.0, -0.5,  5.0,   2.0, 0.0,
-        -5.0, -0.5, -5.0,   0.0, 2.0,
-         5.0, -0.5, -5.0,   2.0, 2.0
-    ]
-
-    vertices_trans = [
+    grass_vertices = [
         0.0, 0.5, 0.0,  0.0, 0.0,
-        0.0,-0.5, 0.0,  0.0, 1.0,
+        0.0,-0.5, 0.0,  1.0, 0.0,
         1.0,-0.5, 0.0,  1.0, 1.0,
 
         0.0, 0.5, 0.0,  0.0, 0.0,
         1.0,-0.5, 0.0,  1.0, 1.0,
-        1.0, 0.5, 0.0,  1.0, 0.0
+        1.0, 0.5, 0.0,  0.0, 1.0
     ]
-    #
-    # indices = [
-    #     0, 1, 2,
-    #     0, 2, 3
-    # ]
-    #
+
     block_positions = [
         Vector3([0, -2, 0]),
         Vector3([1, -2, 0]),
@@ -124,12 +109,9 @@ def main():
 
         Vector3([-1, -1, -1]),
         Vector3([0, -1, -3])
-        #Vector3([])
     ]
 
-    vertices = np.array(vertices, dtype=np.float32)
-    vertices_trans = np.array(vertices_trans, dtype=np.float32)
-    # indices = np.array(indices, dtype=np.uint32)
+    grass_vertices = np.array(grass_vertices, dtype=np.float32)
 
     glfw.init()
 
@@ -160,31 +142,10 @@ def main():
     lighting_shader = Shader("shaders\\lighting_vertex.vs", "shaders\\lighting_fragment.fs")
     outline_shader = Shader("shaders\\outline_vertex.vs", "shaders\\outline_fragment.fs")
 
-    obj = ObjLoader()
-    obj.load_mesh()
-
-    # Plane VAO
-    plane_vao = glGenVertexArrays(1)
-    plane_vbo = glGenBuffers(1)
-    glBindVertexArray(plane_vao)
-    glBindBuffer(GL_ARRAY_BUFFER, plane_vbo)
-    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * vertices.itemsize, ctypes.c_void_p(0))
-    glEnableVertexAttribArray(1)
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * vertices.itemsize, ctypes.c_void_p(3))
-
-    # Trans vao
-    trans_vao = glGenVertexArrays(1)
-    trans_vbo = glGenBuffers(1)
-    glBindVertexArray(trans_vao)
-    glBindBuffer(GL_ARRAY_BUFFER, trans_vbo)
-    glBufferData(GL_ARRAY_BUFFER, vertices_trans.nbytes, vertices_trans, GL_STATIC_DRAW)
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * vertices_trans.itemsize, ctypes.c_void_p(0))
-    glEnableVertexAttribArray(1)
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * vertices_trans.itemsize, ctypes.c_void_p(3))
-    glBindVertexArray(0)
+    block = ObjLoader("models\\block.obj")
+    block.load_mesh()
+    plane = ObjLoader("models\\grass.obj")
+    plane.load_mesh()
 
     # Loading texture
     texture_image = Image.open("resources\\container_texture.png")
@@ -194,6 +155,10 @@ def main():
     spec_texture_image = Image.open("resources\\container_specular.png")
     spec_texture_image = spec_texture_image.transpose(Image.FLIP_TOP_BOTTOM)
     spec_texture_data = spec_texture_image.convert("RGBA").tobytes()
+
+    grass_image = Image.open("resources\\grass.png")
+    grass_image = grass_image.transpose(Image.FLIP_TOP_BOTTOM)
+    grass_data = grass_image.convert("RGBA").tobytes()
 
     # Generating texture
     texture = glGenTextures(1)
@@ -207,6 +172,7 @@ def main():
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_image.width, texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data)
     glGenerateMipmap(GL_TEXTURE_2D)
 
+    # Specular texture
     spec_texture = glGenTextures(1)
     glBindTexture(GL_TEXTURE_2D, spec_texture)
 
@@ -216,6 +182,18 @@ def main():
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spec_texture_image.width, spec_texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, spec_texture_data)
+    glGenerateMipmap(GL_TEXTURE_2D)
+
+    # Grass texture
+    grass_texture = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, grass_texture)
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, grass_image.width, grass_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, grass_data)
     glGenerateMipmap(GL_TEXTURE_2D)
 
     last_frame = 0.0
@@ -281,8 +259,6 @@ def main():
         # Send material to shader
         shader.set_float("material.shininess", 32.0)
 
-        shader.set_int("tex", 0)
-
         # Send maps to shader
         shader.set_int("diffuse", 0)
         shader.set_int("specular", 1)
@@ -330,7 +306,7 @@ def main():
 
             # Send model transform to shader
             shader.set_Matrix44f("model", model_matrix)
-            obj.draw_mesh()
+            block.draw_mesh()
 
         # Draw outline blocks
         glStencilFunc(GL_ALWAYS, 1, 0xFF)
@@ -357,7 +333,20 @@ def main():
 
             # Send model transform to shader
             shader.set_Matrix44f("model", model_matrix)
-            obj.draw_mesh()
+            block.draw_mesh()
+
+        # Draw grass
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, grass_texture)
+        model_matrix = Matrix44.from_scale(Vector3([1., 1., 1.]))
+        model_translation = Matrix44.from_translation(Vector3([0., -2., 0.]))
+        model_rotation_x = Quaternion.from_x_rotation(radians(-90))
+        model_orientation_x = model_rotation_x * Quaternion()
+        model_matrix = model_matrix * model_orientation_x
+        model_matrix = model_matrix * model_translation
+        model_matrix = np.array(model_matrix, dtype=np.float32)
+        shader.set_Matrix44f("model", model_matrix)
+        plane.draw_mesh()
 
         # Draw outline
         glUseProgram(outline_shader.shader_program)
@@ -390,7 +379,7 @@ def main():
 
             # Send model transform to shader
             outline_shader.set_Matrix44f("model", model_matrix)
-            obj.draw_mesh()
+            block.draw_mesh()
 
         glStencilMask(0xFF)
         glEnable(GL_DEPTH_TEST)

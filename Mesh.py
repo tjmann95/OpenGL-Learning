@@ -4,7 +4,7 @@ from OpenGL.GL import *
 
 class ObjLoader:
 
-    def __init__(self):
+    def __init__(self, file):
         self.vert_coords = []
         self.text_coords = []
         self.norm_coords = []
@@ -12,6 +12,8 @@ class ObjLoader:
         self.vertex_index = []
         self.texture_index = []
         self.normal_index = []
+
+        self.filepath = file
 
         self.model = []
 
@@ -63,8 +65,8 @@ class ObjLoader:
 
     def load_mesh(self):
 
-        obj = ObjLoader()
-        obj.load_model("models\\block.obj")
+        obj = ObjLoader(self.filepath)
+        obj.load_model(self.filepath)
 
         texture_offset = len(obj.vertex_index) * 12
         normal_offset = texture_offset + len(obj.texture_index) * 8

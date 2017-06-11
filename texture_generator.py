@@ -4,7 +4,7 @@ from sys import exit
 
 pygame.init()
 
-path = "resources\\cobblestone.png"
+path = "resources\\leaves_oak.png"
 
 texture_image = pygame.image.load(path)
 
