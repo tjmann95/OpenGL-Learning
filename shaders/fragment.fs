@@ -28,7 +28,7 @@ struct DirLight {
     vec3 specular;
 };
 
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
+vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 {
     vec3 lightDir = normalize(-light.direction);
 
@@ -39,9 +39,9 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
     //net
-    vec3 ambient = light.ambient * vec3(texture(diffuse, texCoordOut));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(diffuse, texCoordOut));
-    vec3 specular = light.specular * spec * vec3(texture(specular, texCoordOut));
+    vec4 ambient = vec4(light.ambient, 1.0) * texture(diffuse, texCoordOut);
+    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(diffuse, texCoordOut);
+    vec4 specular = vec4(light.specular, 1.0) * spec * texture(specular, texCoordOut);
     return (ambient + diffuse + specular);
 }
 
@@ -59,7 +59,7 @@ struct PointLight {
     vec3 specular;
 };
 
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 lightDir = normalize(light.position - fragPos);
 
@@ -74,9 +74,9 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
     //net
-    vec3 ambient  = light.ambient  * vec3(texture(diffuse, texCoordOut));
-    vec3 diffuse  = light.diffuse  * diff * vec3(texture(diffuse, texCoordOut));
-    vec3 specular = light.specular * spec * vec3(texture(specular, texCoordOut));
+    vec4 ambient  = vec4(light.ambient, 1.0)  * texture(diffuse, texCoordOut);
+    vec4 diffuse  = vec4(light.diffuse, 1.0)  * diff * texture(diffuse, texCoordOut);
+    vec4 specular = vec4(light.specular, 1.0) * spec * texture(specular, texCoordOut);
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
@@ -92,11 +92,14 @@ void main()
     vec3 viewDir = normalize(viewPos - FragPos);
 
     //Directional
-    vec3 result = CalcDirLight(dirLight, norm, viewDir);
+    vec4 result = CalcDirLight(dirLight, norm, viewDir);
 
     //Point
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
 
-    outColor = vec4(result, 1.0);
+    //outColor = vec4(result, 1.0);
+    if(result.a < 0.1)
+        discard;
+    outColor = result;
 }
