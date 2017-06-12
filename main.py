@@ -4,7 +4,7 @@ import numpy as np
 from OpenGL.GL import *
 from shader_loader import Shader
 from PIL import Image
-from pyrr import Quaternion, Matrix44, Vector3, vector, vector3
+from pyrr import Quaternion, Matrix44, Vector3, Matrix33
 from camera import Camera
 from Mesh import *
 from math import radians
@@ -98,32 +98,6 @@ def load_cubemap(locations):
 
 def main():
 
-    block_positions = [
-        Vector3([0, -2, 0]),
-        Vector3([1, -2, 0]),
-        Vector3([-1, -2, 0]),
-        Vector3([2, -2, 0]),
-        Vector3([-2, -2, 0]),
-        Vector3([0, -2, -1]),
-        Vector3([1, -2, -1]),
-        Vector3([-1, -2, -1]),
-        Vector3([2, -2, -1]),
-        Vector3([-2, -2, -1]),
-        Vector3([1, -2, -2]),
-        Vector3([2, -2, -2]),
-        Vector3([0, -2, -2]),
-        Vector3([-1, -2, -2]),
-        Vector3([-2, -2, -2]),
-        Vector3([1, -2, -3]),
-        Vector3([2, -2, -3]),
-        Vector3([0, -2, -3]),
-        Vector3([-1, -2, -3]),
-        Vector3([-2, -2, -3]),
-
-        Vector3([-1, -1, -1]),
-        Vector3([0, -1, -3])
-    ]
-
     skybox_vertices = [
         -1.0, 1.0, -1.0,
         -1.0, -1.0, -1.0,
@@ -169,6 +143,13 @@ def main():
     ]
 
     skybox_vertices = np.array(skybox_vertices, dtype=np.float32)
+
+    offset = 2
+    block_positions = []
+    for y in range(-10, 10, 2):
+        for x in range(-10, 10, 2):
+            translation = Vector3([x + offset, y + offset, 0], dtype=np.float32)
+            block_positions.append(translation)
 
     glfw.init()
 
@@ -216,6 +197,21 @@ def main():
     glBufferData(GL_ARRAY_BUFFER, skybox_vertices.nbytes, skybox_vertices, GL_STATIC_DRAW)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * skybox_vertices.itemsize, ctypes.c_void_p(0))
     glEnableVertexAttribArray(0)
+
+    # Block position buffers
+    block_positions_array = []
+    for i in range(0, len(block_positions)):
+        block_positions_array.extend([block_positions[i].x, block_positions[i].y, block_positions[i].z])
+    block_positions_array = np.array(block_positions_array, dtype=np.float32)
+    print(block_positions_array)
+
+    position_vbo = glGenBuffers(1)
+    glBindBuffer(GL_ARRAY_BUFFER, position_vbo)
+    glBufferData(GL_ARRAY_BUFFER, block_positions_array.nbytes, block_positions_array, GL_STATIC_DRAW)
+    glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, 3 * block_positions_array.itemsize, ctypes.c_void_p(0))
+    glEnableVertexAttribArray(5)
+    glVertexAttribDivisor(5, 1)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     # Loading texture
     texture_image = Image.open("resources\\container_texture.png")
@@ -284,17 +280,20 @@ def main():
         move()
 
         glClearColor(.1, .1, .1, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         time = glfw.get_time()
         delta_time = time - last_frame
         last_frame = time
 
+        # Set view/projection matrices
+        view_matrix = cam.get_view_matrix()
+        view_matrix = np.array(view_matrix, dtype=np.float32)
+        projection_matrix = Matrix44.perspective_projection(45.0, aspect_ratio, 0.1, 100.0)
+        projection_matrix = np.array(projection_matrix, dtype=np.float32)
+
         glUseProgram(shader.shader_program)
 
-        # Send light vec
-        # shader.set_vec3("light.direction", Vector3([-.2, -1.0, -.3]))
-        # shader.set_vec3("light.position", light_pos)
         # Send view pos
         shader.set_vec3("viewPos", cam.camera_pos)
 
@@ -344,13 +343,7 @@ def main():
         shader.set_int("specular", 1)
         # shader.set_int("emission", 2)
 
-        # Set view/projection matrices
-        view_matrix = cam.get_view_matrix()
-        view_matrix = np.array(view_matrix, dtype=np.float32)
-        projection_matrix = Matrix44.perspective_projection(45.0, aspect_ratio, 0.1, 100.0)
-        projection_matrix = np.array(projection_matrix, dtype=np.float32)
-
-        # Send view projection transformations to shader
+        # Send view, projection transformations to shader
         shader.set_Matrix44f("view", view_matrix)
         shader.set_Matrix44f("projection", projection_matrix)
 
@@ -362,110 +355,88 @@ def main():
         glBindTexture(GL_TEXTURE_2D, spec_texture)
 
         # Draw bottom
-        glStencilMask(0x00)
+        #glStencilMask(0x00)
 
-        for each_block in range(0, len(block_positions) - 2):
-            # Create model matrix
-            model_matrix = Matrix44.from_scale(Vector3([1, 1, 1]))  # Scale model by 1
-
-            model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
-            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-            model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
-            model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
-            model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
-            model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
-
-            model_translation = block_positions[each_block]
-            model_translation = Matrix44.from_translation(2 * model_translation)
-
-            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
-            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
-            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
-            model_matrix = model_matrix * model_translation  # Apply translation
-            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
-
-            # Send model transform to shader
-            shader.set_Matrix44f("model", model_matrix)
-            block.draw_mesh()
-
-        # Draw outline blocks
-        glStencilFunc(GL_ALWAYS, 1, 0xFF)
-        glStencilMask(0xFF)
-        for each_block in range(len(block_positions) - 2, len(block_positions)):
-            # Create model matrix
-            model_matrix = Matrix44.from_scale(Vector3([1, 1, 1]))  # Scale model by 1
-
-            model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
-            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-            model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
-            model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
-            model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
-            model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
-
-            model_translation = block_positions[each_block]
-            model_translation = Matrix44.from_translation(2 * model_translation)
-
-            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
-            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
-            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
-            model_matrix = model_matrix * model_translation  # Apply translation
-            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
-
-            # Send model transform to shader
-            shader.set_Matrix44f("model", model_matrix)
-            block.draw_mesh()
+        #for each_block in range(0, len(block_positions)):
+        #    shader.set_vec3("locations[" + str(each_block) + "]", block_positions[each_block])
+            # # Create model matrix
+            # model_matrix = Matrix44.from_scale(Vector3([1, 1, 1]))  # Scale model by 1
+            #
+            # model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
+            # model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
+            # model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
+            # model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
+            # model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
+            # model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
+            #
+            # model_translation = block_positions[each_block]
+            # model_translation = Matrix44.from_translation(2 * model_translation)
+            #
+            # model_matrix = model_matrix * model_orientation_x  # Apply orientation x
+            # model_matrix = model_matrix * model_orientation_y  # Apply orientation y
+            # model_matrix = model_matrix * model_orientation_z  # Apply orientation z
+            # model_matrix = model_matrix * model_translation  # Apply translation
+            # model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+            #
+            # # Send model transform to shader
+            # shader.set_Matrix44f("model", model_matrix)
+        shader.set_Matrix44f("model", np.array(Matrix44.from_matrix33(Matrix33.identity()), dtype=np.float32))
+        block.draw_mesh()
 
         # Draw grass
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, grass_texture)
-        model_matrix = Matrix44.from_scale(Vector3([1., 1., 1.]))
-        model_translation = Matrix44.from_translation(Vector3([0., -2., 0.]))
-        model_rotation_x = Quaternion.from_x_rotation(radians(-90))
-        model_orientation_x = model_rotation_x * Quaternion()
-        model_matrix = model_matrix * model_orientation_x
-        model_matrix = model_matrix * model_translation
-        model_matrix = np.array(model_matrix, dtype=np.float32)
-        shader.set_Matrix44f("model", model_matrix)
-        plane.draw_mesh()
+        # glActiveTexture(GL_TEXTURE0)
+        # glBindTexture(GL_TEXTURE_2D, grass_texture)
+        # model_matrix = Matrix44.from_scale(Vector3([1., 1., 1.]))
+        # model_translation = Matrix44.from_translation(Vector3([0., -2., 0.]))
+        # model_rotation_x = Quaternion.from_x_rotation(radians(-90))
+        # model_orientation_x = model_rotation_x * Quaternion()
+        # model_matrix = model_matrix * model_orientation_x
+        # model_matrix = model_matrix * model_translation
+        # model_matrix = np.array(model_matrix, dtype=np.float32)
+        # shader.set_Matrix44f("model", model_matrix)
+        # plane.draw_mesh()
 
         # Draw outline
-        glUseProgram(outline_shader.shader_program)
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF)
-        glStencilMask(0x00)
-        glDisable(GL_DEPTH_TEST)
+        # glUseProgram(outline_shader.shader_program)
+        # glStencilFunc(GL_NOTEQUAL, 1, 0xFF)
+        # glStencilMask(0x00)
+        # glDisable(GL_DEPTH_TEST)
+        #
+        # # Send view projection transformations to shader
+        # outline_shader.set_Matrix44f("view", view_matrix)
+        # outline_shader.set_Matrix44f("projection", projection_matrix)
+        # for each_block in range(len(block_positions) - 2, len(block_positions)):
+        #     # Create model matrix
+        #     model_matrix = Matrix44.from_scale(Vector3([1.05, 1.05, 1.05]))  # Scale model by 1
+        #
+        #     model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
+        #     model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
+        #     model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
+        #     model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
+        #     model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
+        #     model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
+        #
+        #     model_translation = block_positions[each_block]
+        #     model_translation = Matrix44.from_translation(2 * model_translation)
+        #
+        #     model_matrix = model_matrix * model_orientation_x  # Apply orientation x
+        #     model_matrix = model_matrix * model_orientation_y  # Apply orientation y
+        #     model_matrix = model_matrix * model_orientation_z  # Apply orientation z
+        #     model_matrix = model_matrix * model_translation  # Apply translation
+        #     model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
+        #
+        #     # Send model transform to shader
+        #     outline_shader.set_Matrix44f("model", model_matrix)
+        #     block.draw_mesh()
+        #
+        # glStencilMask(0xFF)
+        # glEnable(GL_DEPTH_TEST)
 
-        # Send view projection transformations to shader
-        outline_shader.set_Matrix44f("view", view_matrix)
-        outline_shader.set_Matrix44f("projection", projection_matrix)
-        for each_block in range(len(block_positions) - 2, len(block_positions)):
-            # Create model matrix
-            model_matrix = Matrix44.from_scale(Vector3([1.05, 1.05, 1.05]))  # Scale model by 1
-
-            model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
-            model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-            model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
-            model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
-            model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
-            model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
-
-            model_translation = block_positions[each_block]
-            model_translation = Matrix44.from_translation(2 * model_translation)
-
-            model_matrix = model_matrix * model_orientation_x  # Apply orientation x
-            model_matrix = model_matrix * model_orientation_y  # Apply orientation y
-            model_matrix = model_matrix * model_orientation_z  # Apply orientation z
-            model_matrix = model_matrix * model_translation  # Apply translation
-            model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
-
-            # Send model transform to shader
-            outline_shader.set_Matrix44f("model", model_matrix)
-            block.draw_mesh()
-
-        glStencilMask(0xFF)
-        glEnable(GL_DEPTH_TEST)
-
+        # Draw skybox
         glDepthFunc(GL_LEQUAL)
         glUseProgram(skybox_shader.shader_program)
+        view_matrix = Matrix44(Matrix33.from_matrix44(view_matrix))
+        view_matrix = np.array(view_matrix, dtype=np.float32)
         skybox_shader.set_int("skybox", 0)
         skybox_shader.set_Matrix44f("view", view_matrix)
         skybox_shader.set_Matrix44f("projection", projection_matrix)

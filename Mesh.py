@@ -91,5 +91,5 @@ class ObjLoader:
 
     def draw_mesh(self):
         glBindVertexArray(self.vao)
-        glDrawArrays(GL_TRIANGLES, 0, self.indices)
+        glDrawArraysInstanced(GL_TRIANGLES, 0, self.indices, 100)
         glBindVertexArray(0)
