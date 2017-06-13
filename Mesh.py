@@ -1,7 +1,7 @@
 import numpy as np
 from OpenGL.GL import *
 from pyrr import Vector3
-from TerrainGen import HillGrid
+from TerrainGen import Terrain
 from pprint import pprint
 
 
@@ -102,28 +102,13 @@ class ObjLoader:
         glBindVertexArray(0)
 
     def set_locations(self):
-        # instance_array = []
-        # offset = 0
-        #
-        # for z in range(0, 100, 4):
-        #     for y in range(0, 100, 4):
-        #         for x in range(0, 100, 4):
-        #             translation = Vector3([0.0, 0.0, 0.0])
-        #             translation.x = x + offset
-        #             translation.y = y + offset
-        #             translation.z = z + offset
-        #             instance_array.append(translation)
-        #
-        # instance_array = np.array(instance_array, np.float32).flatten()
-        # self.num_objects = int(len(instance_array) / 3)
-        size = 200
-        terrain = HillGrid(KRADIUS=.08, ITER=100, SIZE=size).__getitem__()
-        print(terrain)
+        terrain_data = Terrain(1, 1)
+        terrain = terrain_data.get_map()
         instance_array = []
 
-        for x in range(0, size):
-            for y in range(0, size):
-                instance_array.append([x, terrain[x][y], y])
+        for x in range(0, terrain.shape[0]):
+            for y in range(0, terrain.shape[1]):
+                instance_array.append([x, int(terrain[x][y] * 6), y])
         instance_array = np.array(instance_array, np.float32).flatten()
         self.num_objects = int(len(instance_array) / 3)
 

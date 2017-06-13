@@ -8,9 +8,11 @@ from pyrr import Quaternion, Matrix44, Vector3, Matrix33
 from camera import Camera
 from Mesh import *
 from math import radians
+from texture_loader import Texture
 
 cam = Camera()
 cam_speed = .05
+delta_time = 0
 last_x, last_y = 400, 400
 first_mouse = True
 keys = [False] * 1024
@@ -41,17 +43,17 @@ def key_callback(window, key, scancode, action, mode):
 
 def move():
     if keys[glfw.KEY_W]:
-        cam.process_keyboard("FORWARD", cam_speed)
+        cam.process_keyboard("FORWARD", cam_speed * delta_time)
     if keys[glfw.KEY_S]:
-        cam.process_keyboard("BACKWARD", cam_speed)
+        cam.process_keyboard("BACKWARD", cam_speed * delta_time)
     if keys[glfw.KEY_A]:
-        cam.process_keyboard("LEFT", cam_speed)
+        cam.process_keyboard("LEFT", cam_speed * delta_time)
     if keys[glfw.KEY_D]:
-        cam.process_keyboard("RIGHT", cam_speed)
+        cam.process_keyboard("RIGHT", cam_speed * delta_time)
     if keys[glfw.KEY_SPACE]:
-        cam.process_keyboard("UP", cam_speed)
+        cam.process_keyboard("UP", cam_speed * delta_time)
     if keys[glfw.KEY_LEFT_SHIFT]:
-        cam.process_keyboard("DOWN", cam_speed)
+        cam.process_keyboard("DOWN", cam_speed * delta_time)
 
 
 def mouse_callback(window, xpos, ypos):
@@ -144,6 +146,17 @@ def main():
 
     skybox_vertices = np.array(skybox_vertices, dtype=np.float32)
 
+    framebuffer_vertices = [
+        -1.0,  1.0, 0.0, 1.0,
+        -1.0, -1.0, 0.0, 0.0,
+         1.0, -1.0, 1.0, 0.0,
+        -1.0,  1.0, 0.0, 1.0,
+         1.0, -1.0, 1.0, 0.0,
+         1.0,  1.0, 1.0, 1.0
+    ]
+
+    framebuffer_vertices = np.array(framebuffer_vertices, dtype=np.float32)
+
     offset = 2
     block_positions = []
     for y in range(-10, 10, 2):
@@ -156,6 +169,7 @@ def main():
     window_width = 1920
     window_height = 1080
     aspect_ratio = window_width / window_height
+    glfw.window_hint(glfw.SAMPLES, 4)
     window = glfw.create_window(window_width, window_height, "Learning", glfw.get_primary_monitor(), None)
     if not window:
         glfw.terminate()
@@ -174,6 +188,7 @@ def main():
 
     glEnable(GL_STENCIL_TEST)
     glEnable(GL_DEPTH_TEST)
+    glEnable(GL_MULTISAMPLE)
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
     glEnable(GL_CULL_FACE)
     glCullFace(GL_FRONT)
@@ -183,6 +198,7 @@ def main():
     lighting_shader = Shader("shaders\\lighting_vertex.vs", "shaders\\lighting_fragment.fs")
     outline_shader = Shader("shaders\\outline_vertex.vs", "shaders\\outline_fragment.fs")
     skybox_shader = Shader("shaders\\skybox_vertex.vs", "shaders\\skybox_fragment.fs")
+    screen_shader = Shader("shaders\\framebuffer_vertex.vs", "shaders\\framebuffer_fragment.fs")
 
     block = ObjLoader("models\\block.obj", "block")
     block.load_mesh()
@@ -198,54 +214,48 @@ def main():
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * skybox_vertices.itemsize, ctypes.c_void_p(0))
     glEnableVertexAttribArray(0)
 
-    # Loading texture
-    texture_image = Image.open("resources\\grass_top_texture.png")
-    texture_image = texture_image.transpose(Image.FLIP_TOP_BOTTOM)
-    texture_data = texture_image.convert("RGBA").tobytes()
+    # Framebuffer buffers
+    framebuffer_vao = glGenVertexArrays(1)
+    framebuffer_vbo = glGenBuffers(1)
+    glBindVertexArray(framebuffer_vao)
+    glBindBuffer(GL_ARRAY_BUFFER, framebuffer_vbo)
+    glBufferData(GL_ARRAY_BUFFER, framebuffer_vertices.nbytes, framebuffer_vertices, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * framebuffer_vertices.itemsize, ctypes.c_void_p(0))
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * framebuffer_vertices.itemsize, ctypes.c_void_p(2))
+    glEnableVertexAttribArray(1)
 
-    spec_texture_image = Image.open("resources\\container_specular.png")
-    spec_texture_image = spec_texture_image.transpose(Image.FLIP_TOP_BOTTOM)
-    spec_texture_data = spec_texture_image.convert("RGBA").tobytes()
-
-    grass_image = Image.open("resources\\grass.png")
-    grass_image = grass_image.transpose(Image.FLIP_TOP_BOTTOM)
-    grass_data = grass_image.convert("RGBA").tobytes()
+    glUseProgram(screen_shader.shader_program)
+    screen_shader.set_int("screenTexture", 0)
 
     # Generating texture
-    texture = glGenTextures(1)
-    glBindTexture(GL_TEXTURE_2D, texture)
+    container = Texture("resources\\cobblestone_texture.png", True).tex_ID
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+    # Framebuffer
+    fbo = glGenFramebuffers(1)
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+
+    tex_color_buffer = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, tex_color_buffer)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window_width, window_height, 0, GL_RGB, GL_UNSIGNED_BYTE, None)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+    glBindTexture(GL_TEXTURE_2D, 0)
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_image.width, texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data)
-    glGenerateMipmap(GL_TEXTURE_2D)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_color_buffer, 0)
 
-    # Specular texture
-    spec_texture = glGenTextures(1)
-    glBindTexture(GL_TEXTURE_2D, spec_texture)
+    # Renderbuffer
+    rbo = glGenRenderbuffers(1)
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo)
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, window_width, window_height)
+    glBindRenderbuffer(GL_RENDERBUFFER, 0)
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spec_texture_image.width, spec_texture_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, spec_texture_data)
-    glGenerateMipmap(GL_TEXTURE_2D)
+    if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+        print("ERROR: FRAMEBUFFER: Framebuffer is not complete!")
 
-    # Grass texture
-    grass_texture = glGenTextures(1)
-    glBindTexture(GL_TEXTURE_2D, grass_texture)
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, grass_image.width, grass_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, grass_data)
-    glGenerateMipmap(GL_TEXTURE_2D)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     # Cubemap
     skybox = [
@@ -261,14 +271,18 @@ def main():
     last_frame = 0.0
 
     while not glfw.window_should_close(window):
+        global delta_time
         glfw.poll_events()
         move()
 
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+
         glClearColor(.1, .1, .1, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glEnable(GL_DEPTH_TEST)
 
         time = glfw.get_time()
-        delta_time = time - last_frame
+        delta_time = (time - last_frame) * 200
         last_frame = time
 
         # Set view/projection matrices
@@ -325,8 +339,6 @@ def main():
 
         # Send maps to shader
         shader.set_int("diffuse", 0)
-        shader.set_int("specular", 1)
-        # shader.set_int("emission", 2)
 
         # Send view, projection transformations to shader
         shader.set_Matrix44f("view", view_matrix)
@@ -334,10 +346,7 @@ def main():
 
         # Texture
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, texture)
-
-        glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, spec_texture)
+        glBindTexture(GL_TEXTURE_2D, container)
 
         # Draw block
         block.draw_mesh()
@@ -404,6 +413,16 @@ def main():
         glDrawArrays(GL_TRIANGLES, 0, 36)
         glBindVertexArray(0)
         glDepthFunc(GL_LESS)
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glDisable(GL_DEPTH_TEST)
+        glClearColor(1.0, 1.0, 1.0, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT)
+
+        glUseProgram(screen_shader.shader_program)
+        glBindVertexArray(framebuffer_vao)
+        glBindTexture(GL_TEXTURE_2D, tex_color_buffer)
+        glDrawArrays(GL_TRIANGLES, 0, 6)
 
         glfw.swap_buffers(window)
         glfw.poll_events()
