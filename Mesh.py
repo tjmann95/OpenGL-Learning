@@ -1,5 +1,8 @@
 import numpy as np
 from OpenGL.GL import *
+from pyrr import Vector3
+from TerrainGen import HillGrid
+from pprint import pprint
 
 
 class ObjLoader:
@@ -14,6 +17,7 @@ class ObjLoader:
         self.normal_index = []
 
         self.filepath = file
+        self.num_objects = 0
         self.type = type
         if self.type == "block":
             self.indices = 36
@@ -89,7 +93,49 @@ class ObjLoader:
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, obj.model.itemsize * 3, ctypes.c_void_p(normal_offset))
         glEnableVertexAttribArray(2)
 
+        self.instance_buffers()
+        glBindVertexArray(0)
+
     def draw_mesh(self):
         glBindVertexArray(self.vao)
-        glDrawArraysInstanced(GL_TRIANGLES, 0, self.indices, 100)
+        glDrawArraysInstanced(GL_TRIANGLES, 0, self.indices, self.num_objects)
         glBindVertexArray(0)
+
+    def set_locations(self):
+        # instance_array = []
+        # offset = 0
+        #
+        # for z in range(0, 100, 4):
+        #     for y in range(0, 100, 4):
+        #         for x in range(0, 100, 4):
+        #             translation = Vector3([0.0, 0.0, 0.0])
+        #             translation.x = x + offset
+        #             translation.y = y + offset
+        #             translation.z = z + offset
+        #             instance_array.append(translation)
+        #
+        # instance_array = np.array(instance_array, np.float32).flatten()
+        # self.num_objects = int(len(instance_array) / 3)
+        size = 200
+        terrain = HillGrid(KRADIUS=.08, ITER=100, SIZE=size).__getitem__()
+        print(terrain)
+        instance_array = []
+
+        for x in range(0, size):
+            for y in range(0, size):
+                instance_array.append([x, terrain[x][y], y])
+        instance_array = np.array(instance_array, np.float32).flatten()
+        self.num_objects = int(len(instance_array) / 3)
+
+        return instance_array
+
+    def instance_buffers(self):
+        instance_array = self.set_locations()
+
+        instanceVBO = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO)
+        glBufferData(GL_ARRAY_BUFFER, instance_array.itemsize * len(instance_array), instance_array, GL_STATIC_DRAW)
+
+        glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+        glEnableVertexAttribArray(5)
+        glVertexAttribDivisor(5, 1)

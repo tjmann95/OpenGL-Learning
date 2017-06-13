@@ -198,23 +198,8 @@ def main():
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * skybox_vertices.itemsize, ctypes.c_void_p(0))
     glEnableVertexAttribArray(0)
 
-    # Block position buffers
-    block_positions_array = []
-    for i in range(0, len(block_positions)):
-        block_positions_array.extend([block_positions[i].x, block_positions[i].y, block_positions[i].z])
-    block_positions_array = np.array(block_positions_array, dtype=np.float32)
-    print(block_positions_array)
-
-    position_vbo = glGenBuffers(1)
-    glBindBuffer(GL_ARRAY_BUFFER, position_vbo)
-    glBufferData(GL_ARRAY_BUFFER, block_positions_array.nbytes, block_positions_array, GL_STATIC_DRAW)
-    glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, 3 * block_positions_array.itemsize, ctypes.c_void_p(0))
-    glEnableVertexAttribArray(5)
-    glVertexAttribDivisor(5, 1)
-    glBindBuffer(GL_ARRAY_BUFFER, 0)
-
     # Loading texture
-    texture_image = Image.open("resources\\container_texture.png")
+    texture_image = Image.open("resources\\grass_top_texture.png")
     texture_image = texture_image.transpose(Image.FLIP_TOP_BOTTOM)
     texture_data = texture_image.convert("RGBA").tobytes()
 
@@ -289,7 +274,7 @@ def main():
         # Set view/projection matrices
         view_matrix = cam.get_view_matrix()
         view_matrix = np.array(view_matrix, dtype=np.float32)
-        projection_matrix = Matrix44.perspective_projection(45.0, aspect_ratio, 0.1, 100.0)
+        projection_matrix = Matrix44.perspective_projection(45.0, aspect_ratio, 0.1, 500.0)
         projection_matrix = np.array(projection_matrix, dtype=np.float32)
 
         glUseProgram(shader.shader_program)
@@ -354,33 +339,7 @@ def main():
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, spec_texture)
 
-        # Draw bottom
-        #glStencilMask(0x00)
-
-        #for each_block in range(0, len(block_positions)):
-        #    shader.set_vec3("locations[" + str(each_block) + "]", block_positions[each_block])
-            # # Create model matrix
-            # model_matrix = Matrix44.from_scale(Vector3([1, 1, 1]))  # Scale model by 1
-            #
-            # model_rotation_x = Quaternion.from_x_rotation(0 * each_block)  # Rotate about x
-            # model_orientation_x = model_rotation_x * Quaternion()  # Create orientation matrix x
-            # model_rotation_y = Quaternion.from_y_rotation(0 * each_block)  # Rotate about y
-            # model_orientation_y = model_rotation_y * Quaternion()  # Create orientation matrix y
-            # model_rotation_z = Quaternion.from_z_rotation(0 * each_block)  # Rotate about z
-            # model_orientation_z = model_rotation_z * Quaternion()  # Create orientation matrix z
-            #
-            # model_translation = block_positions[each_block]
-            # model_translation = Matrix44.from_translation(2 * model_translation)
-            #
-            # model_matrix = model_matrix * model_orientation_x  # Apply orientation x
-            # model_matrix = model_matrix * model_orientation_y  # Apply orientation y
-            # model_matrix = model_matrix * model_orientation_z  # Apply orientation z
-            # model_matrix = model_matrix * model_translation  # Apply translation
-            # model_matrix = np.array(model_matrix, dtype=np.float32)  # Convert to opengl data type
-            #
-            # # Send model transform to shader
-            # shader.set_Matrix44f("model", model_matrix)
-        shader.set_Matrix44f("model", np.array(Matrix44.from_matrix33(Matrix33.identity()), dtype=np.float32))
+        # Draw block
         block.draw_mesh()
 
         # Draw grass

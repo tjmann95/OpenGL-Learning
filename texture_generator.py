@@ -4,7 +4,7 @@ from sys import exit
 
 pygame.init()
 
-path = "resources\\leaves_oak.png"
+path = "resources\\grass_top.png"
 
 texture_image = pygame.image.load(path)
 
