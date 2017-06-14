@@ -222,7 +222,7 @@ def main():
     glBufferData(GL_ARRAY_BUFFER, framebuffer_vertices.nbytes, framebuffer_vertices, GL_STATIC_DRAW)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * framebuffer_vertices.itemsize, ctypes.c_void_p(0))
     glEnableVertexAttribArray(0)
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * framebuffer_vertices.itemsize, ctypes.c_void_p(2))
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * framebuffer_vertices.itemsize, ctypes.c_void_p(2 * framebuffer_vertices.itemsize))
     glEnableVertexAttribArray(1)
 
     glUseProgram(screen_shader.shader_program)
